@@ -13,7 +13,7 @@ OUTPUT_PADDING = 100
 
 class Vocabulary(object):
 
-    def __init__(self, vocabulary_file, padding=None):
+    def __init__(self, vocabulary_file):
         """
             Creates a vocabulary from a file
             :param vocabulary_file: the path to the vocabulary
@@ -22,7 +22,6 @@ class Vocabulary(object):
         with open(vocabulary_file, 'r') as f:
             self.vocabulary = json.load(f)
 
-        self.padding = padding
         self.reverse_vocabulary = {v: k for k, v in self.vocabulary.items()}
 
     def size(self):
@@ -31,9 +30,12 @@ class Vocabulary(object):
         """
         return len(self.vocabulary.keys())
 
+    def set_padding(self, padding):
+        self.padding = padding
+
     def string_to_int(self, text):
         """
-            Converts a string into it's character integer 
+            Converts a string into it's character integer
             representation
             :param text: text to convert
         """
@@ -84,11 +86,11 @@ class Data(object):
             :param file_name: name of the file to read from
             :param vocabulary: the Vocabulary object to use
             :param batch_size: the number of datapoints to return
-            :param padding: the amount of padding to apply to 
+            :param padding: the amount of padding to apply to
                             a short string
         """
 
-        self.input_vocabulary = input_vocabulary
+        self.input_vocabulary  = input_vocabulary
         self.output_vocabulary = output_vocabulary
         self.file_name = file_name
 
@@ -96,31 +98,38 @@ class Data(object):
         """
             Loads data from a file
         """
-        self.inputs = []
+        self.inputs  = []
         self.targets = []
 
         with open(self.file_name, 'r') as f:
             reader = csv.reader(f)
             for row in reader:
-                self.inputs.append(row[0])
+                self.inputs. append(row[0])
                 self.targets.append(row[1])
 
-    def transform(self):
+    @property
+    def lean_paddings(self):
+        return (max(len(i) for i in self.inputs),
+                max(len(i) for i in self.targets))
+
+    def transform(self, paddings):
         """
             Transforms the data as necessary
         """
+        print("Setting i/o paddings to", paddings)
+        self.input_vocabulary .set_padding(paddings[0])
+        self.output_vocabulary.set_padding(paddings[1])
+
         # @TODO: use `pool.map_async` here?
         self.inputs = np.array(list(
-            map(self.input_vocabulary.string_to_int, self.inputs)))
+                       map(self.input_vocabulary .string_to_int, self.inputs)))
         self.targets = map(self.output_vocabulary.string_to_int, self.targets)
         self.targets = np.array(
             list(map(
-                lambda x: to_categorical(
-                    x,
-                    num_classes=self.output_vocabulary.size()),
+                lambda x: to_categorical( x, num_classes=self.output_vocabulary.size()),
                 self.targets)))
 
-        assert len(self.inputs.shape) == 2, 'Inputs could not properly be encoded'
+        assert len(self.inputs.shape ) == 2, 'Inputs  could not properly be encoded'
         assert len(self.targets.shape) == 3, 'Targets could not properly be encoded'
 
     def generator(self, batch_size):
@@ -133,7 +142,7 @@ class Data(object):
         while True:
             try:
                 batch_ids = random.sample(instance_id, batch_size)
-                yield (np.array(self.inputs[batch_ids], dtype=int),
+                yield (np.array(self.inputs [batch_ids], dtype=int),
                        np.array(self.targets[batch_ids]))
             except Exception as e:
                 print('EXCEPTION OMG')
@@ -141,16 +150,16 @@ class Data(object):
                 yield None, None
 
 if __name__ == '__main__':
-    input_vocab = Vocabulary('./human_vocab.json', padding=50)
-    output_vocab = Vocabulary('./machine_vocab.json', padding=12)
-    ds = Data('./fake.csv', input_vocab, output_vocab)
+    input_vocab  = Vocabulary('./human_vocab.json'  )
+    output_vocab = Vocabulary('./machine_vocab.json')
+    ds = Data('./training.csv', input_vocab, output_vocab)
     ds.load()
-    ds.transform()
-    print(ds.inputs.shape)
-    print(ds.targets.shape)
-    g = ds.generator(32)
-    print(ds.inputs[[5,10, 12]].shape)
+    ds.transform(ds.lean_paddings)
+    print("input  shape with padding", ds.inputs .shape)
+    print("target shape with padding", ds.targets.shape)
+    print(ds.inputs [[5,10,12]].shape)
     print(ds.targets[[5,10,12]].shape)
+    g = ds.generator(32)
     # for i in range(50):
     #     print(next(g)[0].shape)
     #     print(next(g)[1].shape)

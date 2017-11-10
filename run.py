@@ -28,28 +28,27 @@ def main(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     # Dataset functions
-    input_vocab = Vocabulary('./data/human_vocab.json', padding=args.padding)
-    output_vocab = Vocabulary('./data/machine_vocab.json',
-                              padding=args.padding)
+    input_vocab  = Vocabulary('./data/human_vocab.json', )
+    output_vocab = Vocabulary('./data/machine_vocab.json')
 
     print('Loading datasets.')
-
-    training = Data(args.training_data, input_vocab, output_vocab)
+    training   = Data(args.training_data,   input_vocab, output_vocab)
     validation = Data(args.validation_data, input_vocab, output_vocab)
-    training.load()
+    training  .load()
     validation.load()
-    training.transform()
-    validation.transform()
-
+    padding = args.padding if args.padding else max(*training.lean_paddings, *validation.lean_paddings)
+    training  .transform((padding, padding))
+    validation.transform((padding, padding))
     print('Datasets Loaded.')
+
     print('Compiling Model.')
-    model = simpleNMT(pad_length=args.padding,
-                      n_chars=input_vocab.size(),
-                      n_labels=output_vocab.size(),
+    model = simpleNMT(pad_length   =padding,
+                      n_chars      =input_vocab.size(),
+                      n_labels     =output_vocab.size(),
                       embedding_learnable=False,
                       encoder_units=256,
                       decoder_units=256,
-                      trainable=True,
+                      trainable    =True,
                       return_probabilities=False)
 
     model.summary()
@@ -90,7 +89,7 @@ if __name__ == '__main__':
 
     named_args.add_argument('-p', '--padding', metavar='|',
                             help="""Amount of padding to use""",
-                            required=False, default=50, type=int)
+                            required=False, default=None, type=int)
 
     named_args.add_argument('-t', '--training-data', metavar='|',
                             help="""Location of training data""",

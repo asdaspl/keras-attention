@@ -13,6 +13,7 @@
 import random
 import json
 import os
+import tqdm
 
 DATA_FOLDER = os.path.realpath(os.path.join(os.path.realpath(__file__), '..'))
 
@@ -42,14 +43,14 @@ FORMATS = ['short',
            ]
 
 # change this if you want it to work with only a single language
-# LOCALES = ['en_US']
-LOCALES = babel.localedata.locale_identifiers()
+LOCALES = ['en_US']
+#LOCALES = babel.localedata.locale_identifiers()
 
 
 def create_date():
     """
-        Creates some fake dates 
-        :returns: tuple containing 
+        Creates some fake dates
+        :returns: tuple containing
                   1. human formatted string
                   2. machine formatted string
                   3. date object.
@@ -88,7 +89,7 @@ def create_dataset(dataset_name, n_examples, vocabulary=False):
     machine_vocab = set()
 
     with open(dataset_name, 'w') as f:
-        for i in range(n_examples):
+        for i in tqdm.tqdm(range(n_examples)):
             h, m, _ = create_date()
             if h is not None:
                 f.write('"'+h + '","' + m + '"\n')
@@ -105,6 +106,8 @@ def create_dataset(dataset_name, n_examples, vocabulary=False):
 
         human2int = {v: k for k, v in int2human.items()}
         machine2int = {v: k for k, v in int2machine.items()}
+        print("human   vocab size:", len(int2human))
+        print("machine vocab size:", len(int2machine))
 
         with open(os.path.join(DATA_FOLDER, 'human_vocab.json'), 'w') as f:
             json.dump(human2int, f)
