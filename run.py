@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
     Runs a simple Neural Machine Translation model
     Type `python run.py -h` for help with arguments.
@@ -36,20 +38,30 @@ def main(args):
     validation = Data(args.validation_data, input_vocab, output_vocab)
     training  .load()
     validation.load()
-    padding = args.padding if args.padding else max(*training.lean_paddings, *validation.lean_paddings)
-    training  .transform((padding, padding))
-    validation.transform((padding, padding))
+
+    if args.paddings:
+        paddings = tuple(int(i) for i in args.paddings.split(','))
+        if len(paddings) == 1:
+            paddings = paddings * 2
+        assert len(paddings) == 2 and all(isinstance(i, int) for i in paddings)
+    else:
+        paddings = tuple(max(i) for i in zip(training.lean_paddings, validation.lean_paddings))
+
+    training  .transform(paddings)
+    validation.transform(paddings)
     print('Datasets Loaded.')
 
     print('Compiling Model.')
-    model = simpleNMT(pad_length   =padding,
-                      n_chars      =input_vocab.size(),
-                      n_labels     =output_vocab.size(),
-                      embedding_learnable=False,
-                      encoder_units=256,
-                      decoder_units=256,
-                      trainable    =True,
-                      return_probabilities=False)
+    model = simpleNMT(in_padding            = paddings[0],
+                      out_padding           = paddings[1],
+                      in_vocab_size         = input_vocab.size(),
+                      out_vocab_size        = output_vocab.size(),
+                      embedding_mul         = 7,
+                      encoder_units         = 256,
+                      decoder_units         = 256,
+                      embedding_learnable   = False,
+                      trainable             = True,
+                      return_probabilities  = False)
 
     model.summary()
     model.compile(optimizer='adam',
@@ -59,20 +71,19 @@ def main(args):
     print('Training. Ctrl+C to end early.')
 
     try:
-        model.fit_generator(generator=training.generator(args.batch_size),
-                            steps_per_epoch=100,
-                            validation_data=validation.generator(args.batch_size),
+        model.fit_generator(generator       =training.generator(args.batch_size),
+                            steps_per_epoch =100,
+                            validation_data =validation.generator(args.batch_size),
                             validation_steps=100,
-                            callbacks=[cp],
-                            workers=1,
-                            verbose=1,
-                            epochs=args.epochs)
+                            callbacks       =[cp],
+                            workers         =1,
+                            verbose         =1,
+                            epochs          =args.epochs)
 
     except KeyboardInterrupt as e:
         print('Model training stopped early.')
 
     print('Model training complete.')
-
     run_examples(model, input_vocab, output_vocab)
 
 if __name__ == '__main__':
@@ -87,9 +98,9 @@ if __name__ == '__main__':
                             help="""GPU to use""",
                             required=False, default='0', type=str)
 
-    named_args.add_argument('-p', '--padding', metavar='|',
-                            help="""Amount of padding to use""",
-                            required=False, default=None, type=int)
+    named_args.add_argument('-p', '--paddings', metavar='|',
+                            help="""fixed lengths of i/o sequence""",
+                            required=False, default=None, type=str)
 
     named_args.add_argument('-t', '--training-data', metavar='|',
                             help="""Location of training data""",

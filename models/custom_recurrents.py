@@ -39,18 +39,18 @@ tfPrint = lambda d, T: tf.Print(input_=T, data=[T, tf.shape(T)], message=d)
 
 class AttentionDecoder(Recurrent):
 
-    def __init__(self, units, output_dim,
-                 activation='tanh',
-                 return_probabilities=False,
-                 name='AttentionDecoder',
-                 kernel_initializer='glorot_uniform',
-                 recurrent_initializer='orthogonal',
-                 bias_initializer='zeros',
-                 kernel_regularizer=None,
-                 bias_regularizer=None,
-                 activity_regularizer=None,
-                 kernel_constraint=None,
-                 bias_constraint=None,
+    def __init__(self, units, out_padding, output_dim,
+                 activation             = 'tanh',
+                 return_probabilities   = False,
+                 name                   = 'AttentionDecoder',
+                 kernel_initializer     = 'glorot_uniform',
+                 recurrent_initializer  = 'orthogonal',
+                 bias_initializer       = 'zeros',
+                 kernel_regularizer     = None,
+                 bias_regularizer       = None,
+                 activity_regularizer   = None,
+                 kernel_constraint      = None,
+                 bias_constraint        = None,
                  **kwargs):
         """
         Implements an AttentionDecoder that takes in a sequence encoded by an
@@ -63,26 +63,28 @@ class AttentionDecoder(Recurrent):
             "Neural machine translation by jointly learning to align and translate."
             arXiv preprint arXiv:1409.0473 (2014).
         """
-        self.units = units
+        self.name       = name
+        self.units      = units
         self.output_dim = output_dim
-        self.return_probabilities = return_probabilities
+        self.out_padding = out_padding
         self.activation = activations.get(activation)
-        self.kernel_initializer = initializers.get(kernel_initializer)
-        self.recurrent_initializer = initializers.get(recurrent_initializer)
-        self.bias_initializer = initializers.get(bias_initializer)
+        self.return_sequences = True  # must return sequences
+        self.return_probabilities = return_probabilities
 
-        self.kernel_regularizer = regularizers.get(kernel_regularizer)
-        self.recurrent_regularizer = regularizers.get(kernel_regularizer)
-        self.bias_regularizer = regularizers.get(bias_regularizer)
-        self.activity_regularizer = regularizers.get(activity_regularizer)
+        self.kernel_initializer     = initializers.get(kernel_initializer)
+        self.recurrent_initializer  = initializers.get(recurrent_initializer)
+        self.bias_initializer       = initializers.get(bias_initializer)
 
-        self.kernel_constraint = constraints.get(kernel_constraint)
-        self.recurrent_constraint = constraints.get(kernel_constraint)
-        self.bias_constraint = constraints.get(bias_constraint)
+        self.kernel_regularizer     = regularizers.get(kernel_regularizer)
+        self.recurrent_regularizer  = regularizers.get(kernel_regularizer)
+        self.bias_regularizer       = regularizers.get(bias_regularizer)
+        self.activity_regularizer   = regularizers.get(activity_regularizer)
+
+        self.kernel_constraint      = constraints.get(kernel_constraint)
+        self.recurrent_constraint   = constraints.get(kernel_constraint)
+        self.bias_constraint        = constraints.get(bias_constraint)
 
         super(AttentionDecoder, self).__init__(**kwargs)
-        self.name = name
-        self.return_sequences = True  # must return sequences
 
     def build(self, input_shape):
         """

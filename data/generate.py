@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
   Date Generator
     This code creates data for our date translation model
